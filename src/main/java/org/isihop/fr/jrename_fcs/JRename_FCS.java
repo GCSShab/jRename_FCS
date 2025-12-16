@@ -125,7 +125,7 @@ public class JRename_FCS {
 
                     //Traitement des fichiers sources selon option action
                     switch (action.toUpperCase()) {
-                        case "MOVE_LOCK" -> setLockExtension(find);
+                        case "MOVE_LOCK" -> setLockExtension(find,"lock");
                         case "DELETE" -> supprimer_Source(find);
                         case "DELETE_PRESERVE" -> supprimer_Preserver_Source(find,traitement_Retour);
                     }
@@ -153,7 +153,7 @@ public class JRename_FCS {
         nouveauNom = rechercher_donnees(numechantillon, fichier_reduit);
         //renommer le fichier
         renommer_et_copier_fichier(fichier, nouveauNom, dstPath);
-        return nouveauNom.compareTo(fichier_reduit); //valeur de comparaison, indique si renommage ok ou non
+        return (nouveauNom+".fcs").compareTo(fichier_reduit); //valeur de comparaison, indique si renommage ok ou non
     }
 
     /**
@@ -289,11 +289,11 @@ public class JRename_FCS {
      * @return 
      ******************************
      */
-    private void setLockExtension(File find) 
+    private void setLockExtension(File find, String extX) 
     {
         if (find.exists()) 
         {
-            String new_name = find.getAbsolutePath() + "_lock";
+            String new_name = find.getAbsolutePath() + "_"+extX;
             find.renameTo(new File(new_name));
         }
     }
@@ -321,7 +321,7 @@ public class JRename_FCS {
         if (traitement_OK==0)
         {
             //ne pas supprimer Source, juste mettre extension lock
-            setLockExtension(find);
+            setLockExtension(find,"error");
         }
         else
         {
