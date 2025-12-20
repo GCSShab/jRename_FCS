@@ -1,0 +1,8 @@
+2025-12-20 15:16:41.164 INFO  - =============================
+2025-12-20 15:16:41.166 INFO  - {srcpathlist=//172.18.YYY.XXX/automates/HEMATO-HEMOSTASE/beckman/0. Données brutes (FCS), extension=fcs, dbpassword=XXXXXXXXX, pattern=\b\d{12,12}\b, dstpath=//172.18.YYY.XXX/automates/HEMATO-HEMOSTASE/beckman/1. Données (FCS renommés), action=delete_preserve, dblogin=postgres, dburl=jdbc:postgresql://vm296.ch-v.net:5432/cmf}
+2025-12-20 15:16:41.168 INFO  - Tentative connexion BDD org.postgresql.Driver => jdbc:postgresql://vm296.ch-v.net:5432/cmf@postgres/XXXXXXXXX
+2025-12-20 15:16:51.264 ERROR - La tentative de connexion a échoué.
+2025-12-20 15:16:51.265 INFO  - Lister les fichiers de la source...
+2025-12-20 15:16:51.564 ERROR - Acces dossier source ou UNC source impossible.
+2025-12-20 15:18:22.561 INFO  - =============================
+2025-12-20 15:18:22.563 ERROR - C:\Users\tondeur-h\Documents\NetBeansProjects\JRename_FCS\JRename_FCS.properties (Le fichier spécifié est introuvable)

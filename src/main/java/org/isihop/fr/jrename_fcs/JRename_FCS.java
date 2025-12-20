@@ -17,10 +17,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -42,15 +41,19 @@ public class JRename_FCS {
     Connection conn;
     Statement stmt;
 
+    
     //logs
-    private static final Logger logger = Logger.getLogger(JRename_FCS.class.getName());
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JRename_FCS.class);
+
 
     public static void main(String[] args) {new JRename_FCS();}
 
     /************************
      * Constructeur
      ************************/
-    public JRename_FCS() {
+    public JRename_FCS() 
+    {
+        logger.info("=============================");
         //lire le fichier des properties
         lire_properties();
         //Splitter les chemins des dossiers sources
@@ -58,7 +61,7 @@ public class JRename_FCS {
 
         connect_db(); //connecter DB 
         lister_fichiers();
-        System.out.println("Traitement des fichiers termine...");
+        logger.info("Traitement des fichiers termine...");
         close_db(); //fermer db
     }
 
@@ -88,15 +91,16 @@ public class JRename_FCS {
                 pattern = p.getProperty("pattern", "\\b\\d{12}\\b");
                 action = p.getProperty("action", "move_lock"); //delete, move_lock, delete_preserve
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, ex.getMessage());
+                logger.error(ex.getMessage());
             }
-        } catch (FileNotFoundException ex) {
-            logger.log(Level.SEVERE, ex.getMessage());
-        } finally {
+            logger.info(p.toString()); //log des paramètres 
+            } catch (FileNotFoundException ex) {
+                logger.error(ex.getMessage());
+            } finally {
             try {
                 is.close();
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, ex.getMessage());
+                logger.error(ex.getMessage());
             }
         }
     }
@@ -109,30 +113,42 @@ public class JRename_FCS {
     private void lister_fichiers() {
         int traitement_Retour=0;
         
+        logger.info("Lister les fichiers de la source...");
+        
         for (String srcPath : srcPathList) 
         {
-            File[] fileInDir = new File(srcPath).listFiles(file -> file.isFile() && file.getName().toLowerCase().endsWith(".fcs"));
+            File[] fileInDir=null;
+          
+                fileInDir = new File(srcPath).listFiles(file -> file.isFile() && file.getName().toLowerCase().endsWith(".fcs"));
+          if (fileInDir==null)
+          {
+                        logger.error("Acces dossier source ou UNC source impossible.");
+                        System.exit(0);
+          }
+          logger.info("Liste des fichiers : "+Arrays.toString(fileInDir));
+          
             for (File find : fileInDir) 
             {
                 try //pour chaque fichier du dossier source
                 {
                     String filePath = find.getAbsolutePath();
                     String fileExtenstion = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length());
-                    if (extension.equals(fileExtenstion)) 
+                    if (extension.equals(fileExtenstion)) //tester si est de type fcs
                     {
                         traitement_Retour=traiter_fichiers(filePath);
+                        logger.info(filePath+" => traitement => "+ (traitement_Retour==1 ? "OK":"KO"));
                     }
 
                     //Traitement des fichiers sources selon option action
-                    switch (action.toUpperCase()) {
+                    switch (action.toUpperCase()) 
+                    {
                         case "MOVE_LOCK" -> setLockExtension(find,"lock");
                         case "DELETE" -> supprimer_Source(find);
                         case "DELETE_PRESERVE" -> supprimer_Preserver_Source(find,traitement_Retour);
                     }
                 } catch (IOException ex) {
-                    System.getLogger(JRename_FCS.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                    logger.error(ex.getMessage());
                 }
-
             }
         }
     }
@@ -148,9 +164,14 @@ public class JRename_FCS {
         String nouveauNom = "";
         //lire le nom et récupérer le numero d'échantillon
         String fichier_reduit = new File(fichier).getName().trim();
+        logger.info("traitement du fichier => "+fichier_reduit);
+        
         numechantillon = extraire_numechantillon(fichier_reduit);
+        logger.info("Numero d'échantillon => "+numechantillon);
+        
         //rechercher en base les données correspondantes
         nouveauNom = rechercher_donnees(numechantillon, fichier_reduit);
+        logger.info("Nouveau nom pour le fichier => "+nouveauNom);
         //renommer le fichier
         renommer_et_copier_fichier(fichier, nouveauNom, dstPath);
         return (nouveauNom+".fcs").compareTo(fichier_reduit); //valeur de comparaison, indique si renommage ok ou non
@@ -166,15 +187,18 @@ public class JRename_FCS {
     private boolean connect_db() 
     {
         boolean isconnected = false;
+        logger.info("Tentative connexion BDD org.postgresql.Driver => "+dburl+"@"+dblogin+"/"+dbpassword);
+        
         try {
             Class.forName("org.postgresql.Driver");
 
             conn = DriverManager.getConnection(dburl, dblogin, dbpassword);
             isconnected = true;
             stmt = conn.createStatement();
-
+            logger.info("Connexion BDD OK...");
+            
         } catch (ClassNotFoundException | SQLException ex) {
-            logger.log(Level.SEVERE, ex.getMessage());
+            logger.error(ex.getMessage());
         }
         return isconnected;
     }
@@ -190,8 +214,9 @@ public class JRename_FCS {
         {
             stmt.close();
             conn.close();
+            logger.info("Fermeture de la base de données.");
         } catch (SQLException ex) {
-            logger.log(Level.SEVERE, ex.getMessage());
+            logger.error(ex.getMessage());
         }
     }
 
@@ -207,14 +232,15 @@ public class JRename_FCS {
         String retour = nom_fichier.substring(0, nom_fichier.lastIndexOf("."));
         try {
             String sql = "SELECT object,panel FROM public.patients WHERE echantillon='" + numechantillon + "'";
-
+            logger.info(sql);
+            
             try (ResultSet rs = stmt.executeQuery(sql)) {
                 rs.next();
                 retour = retour + "_" + rs.getString(1) + "_" + rs.getString(2);
             }
 
         } catch (SQLException ex) {
-            logger.log(Level.SEVERE, "NUM ligne : {0} => {1}", new Object[]{numechantillon, ex.getMessage()});
+            logger.error("NUM echantillon : "+numechantillon+" => "+ ex.getMessage());
         }
 
         return retour;
@@ -256,29 +282,32 @@ public class JRename_FCS {
         destination = destination + "/" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         File fichierSource = new File(fichiersource);
         File dossierDest = new File(destination);
-
+        logger.info("Renommer "+fichiersource+" vers "+destination);
+        
         // Vérifie si le fichier source existe
         if (!fichierSource.exists()) {
-            System.out.println("Le fichier source n'existe pas.");
+            logger.error("Le fichier source "+fichierSource.getAbsolutePath()+" n'existe pas!");
             return false;
         }
 
         // Crée le dossier de destination s'il n'existe pas
-        if (!dossierDest.exists()) {
-            dossierDest.mkdirs();
-        }
+        if (!dossierDest.exists()) 
+        {
+            if (!dossierDest.mkdir()){logger.error("Impossible de creer dossier "+destination);}
 
         // Crée le chemin complet du nouveau fichier
         File fichierDestination = new File(dossierDest, nouveauNom + "." + extension);
 
         try {
             Files.copy(fichierSource.toPath(), fichierDestination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("Fichier renomme avec succes !");
+            logger.info("Fichier "+fichiersource+" renomme avec succes !");
             return true;
         } catch (IOException e) {
-            System.out.println("Erreur lors du renommage : " + e.getMessage());
+            logger.error("Erreur lors du renommage : " + e.getMessage());
             return false;
         }
+      }
+        return false;
     }
 
     /**
@@ -295,6 +324,7 @@ public class JRename_FCS {
         {
             String new_name = find.getAbsolutePath() + "_"+extX;
             find.renameTo(new File(new_name));
+            logger.info("setLockExtension => Renommer vers => "+new_name);
         }
     }
 
@@ -309,6 +339,7 @@ public class JRename_FCS {
     public static void supprimer_Source(File chemin) throws IOException 
     {
         chemin.delete(); //supprime le fichier.
+        logger.info("Supprimer Source => "+chemin.getAbsolutePath());
     }
 
     
@@ -329,7 +360,7 @@ public class JRename_FCS {
                 //supprimer la source
                 supprimer_Source(find);
             } catch (IOException ex) {
-                System.getLogger(JRename_FCS.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                logger.error(ex.getMessage());
             }
         }
     }

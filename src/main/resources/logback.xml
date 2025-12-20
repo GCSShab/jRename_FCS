@@ -1,0 +1,39 @@
+<configuration>
+  <!-- Encodage et pattern -->
+  <!-- <property name="LOG_DIR" value="C:/Users/tondeur-h/Documents/NetBeansProjects/JRename_FCS" /> -->
+  <property name="LOG_DIR" value="${LOG_DIR:-D:/scripts/JRename_FCS}" />
+  <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level - %msg%n"/>
+
+  <!-- Console -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Fichier avec rotation quotidienne et taille -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_DIR}/JRename_FCS.log</file>
+    <encoder>
+      <pattern>${LOG_PATTERN}</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- Fichier archivé quotidien -->
+      <fileNamePattern>${LOG_DIR}/JRename_FCS-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <!-- Garder 30 jours -->
+      <maxHistory>30</maxHistory>
+      <!-- Limite globale (optionnel) -->
+      <totalSizeCap>5GB</totalSizeCap>
+      <!-- Rotation par taille sur chaque jour -->
+      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <maxFileSize>100MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+    </rollingPolicy>
+  </appender>
+
+  <!-- Logger racine -->
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>
