@@ -240,7 +240,7 @@ public class JRename_FCS {
             }
 
         } catch (SQLException ex) {
-            logger.error("NUM echantillon : "+numechantillon+" => "+ ex.getMessage());
+            logger.error("NUM echantillon : "+numechantillon+" => " + ex.getMessage());
         }
 
         return retour;
